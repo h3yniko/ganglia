@@ -1,0 +1,28 @@
+services:
+  migrate:
+    build: .
+    command: node dist/db/migrate.js
+    restart: "no"
+    volumes:
+      - sqlite_data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+
+  app:
+    build: .
+    command: node dist/index.js
+    ports:
+      - "3000:3000"
+    volumes:
+      - sqlite_data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+      - PORT=3000
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+        required: true
+
+volumes:
+  sqlite_data:
