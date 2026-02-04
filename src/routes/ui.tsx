@@ -6,7 +6,7 @@ const ui = new Hono()
 
 // Landing page
 ui.get('/', (c) => {
-  return c.html(<Landing />)
+  return c.html(Landing())
 })
 
 // Skill file with token in URL (for Claude Code integration)
