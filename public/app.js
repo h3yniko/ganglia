@@ -93,6 +93,7 @@ document.addEventListener('alpine:init', () => {
     tokens: [],
     newToken: null,
     tokenName: '',
+    tokenError: '',
     loading: false,
     copied: false,
 
@@ -105,6 +106,7 @@ document.addEventListener('alpine:init', () => {
       originalContent: '',
       isEditing: false,
       loading: false,
+      loadingContent: false,
       error: null,
       expandedDirs: new Set([''])
     },
@@ -148,6 +150,7 @@ Read ${this.skillUrl} and follow the instructions to connect to your Ganglia mem
     async createToken() {
       if (!this.tokenName.trim()) return
       this.loading = true
+      this.tokenError = ''
 
       try {
         const res = await fetch('/api/tokens', {
@@ -160,7 +163,8 @@ Read ${this.skillUrl} and follow the instructions to connect to your Ganglia mem
         })
 
         if (!res.ok) {
-          alert('Failed to create token')
+          const data = await res.json().catch(() => ({}))
+          this.tokenError = data.error || 'Failed to create token'
           return
         }
 
@@ -169,14 +173,15 @@ Read ${this.skillUrl} and follow the instructions to connect to your Ganglia mem
         this.tokenName = ''
         await this.loadTokens()
       } catch {
-        alert('Network error')
+        this.tokenError = 'Network error. Please check your connection and try again.'
       } finally {
         this.loading = false
       }
     },
 
     async revokeToken(id) {
-      if (!confirm('Revoke this token?')) return
+      if (!confirm('Revoke this token? This cannot be undone.')) return
+      this.tokenError = ''
 
       try {
         const res = await fetch(`/api/tokens/${id}`, {
@@ -186,9 +191,11 @@ Read ${this.skillUrl} and follow the instructions to connect to your Ganglia mem
 
         if (res.ok) {
           await this.loadTokens()
+        } else {
+          this.tokenError = 'Failed to revoke token'
         }
       } catch {
-        alert('Network error')
+        this.tokenError = 'Network error. Please check your connection and try again.'
       }
     },
 
@@ -240,9 +247,12 @@ Read ${this.skillUrl} and follow the instructions to connect to your Ganglia mem
         if (!confirm('You have unsaved changes. Discard?')) return
       }
 
-      this.files.loading = true
+      this.files.loadingContent = true
       this.files.error = null
       this.files.isEditing = false
+      this.files.currentPath = path
+      this.files.currentContent = ''
+      this.files.originalContent = ''
 
       try {
         const res = await fetch(`/agent/${encodeURIComponent(path)}`, {
@@ -252,13 +262,13 @@ Read ${this.skillUrl} and follow the instructions to connect to your Ganglia mem
         if (!res.ok) throw new Error('Failed to load file')
 
         const content = await res.text()
-        this.files.currentPath = path
         this.files.currentContent = content
         this.files.originalContent = content
       } catch (err) {
         this.files.error = err.message || 'Failed to load file'
+        this.files.currentPath = null
       } finally {
-        this.files.loading = false
+        this.files.loadingContent = false
       }
     },
 

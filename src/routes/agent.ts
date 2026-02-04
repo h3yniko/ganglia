@@ -155,6 +155,7 @@ agentApi.get('/tokens', (c) => {
   const tokens = listTokens(user.id).map((t) => ({
     id: t.id,
     name: t.name,
+    hint: t.tokenHint,
     createdAt: t.createdAt,
     lastUsedAt: t.lastUsedAt
   }))
